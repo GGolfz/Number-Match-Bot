@@ -1,3 +1,5 @@
+// limit number of forecast to prevent long calculation
+const MAX_FORECAST = 5;
 const width = 9;
 const allDirection = [
   [0, 1], // right
@@ -5,9 +7,11 @@ const allDirection = [
   [1, 0], // bottom
   [1, 1], // bottom-right
 ];
+
 const isMatch = (num1, num2) => {
   return num1 === num2 || num1 + num2 === 10;
 };
+
 const checkDirection = (
   board,
   current,
@@ -43,7 +47,7 @@ const checkDirection = (
   return null;
 };
 
-const play = (board) => {
+const findAllValidPosition = (board) => {
   let validPosition = [];
   const height = board.length;
   for (let i = 0; i < height; i++) {
@@ -81,6 +85,7 @@ const clearBoard = (board) => {
   }
   return newBoard;
 };
+
 const copyBoard = (board) => {
   let newArray = [];
   for (var i = 0; i < board.length; i++) newArray[i] = board[i].slice();
@@ -92,7 +97,8 @@ const calculateBoardScore = (board) => {
     .map((row) => row.filter((r) => r !== 0).length)
     .reduce((prev, cur) => prev + cur, 0);
 };
-const actionBoard = (board, allState, withReport = false) => {
+
+const actionBoard = (board, allState) => {
   let newBoard = copyBoard(board);
   for (let move of allState) {
     const height = newBoard.length;
@@ -114,24 +120,15 @@ const actionBoard = (board, allState, withReport = false) => {
     newBoard = clearBoard(newBoard);
     console.log("=================================================");
   }
-  if (withReport) {
-    const boardScore = calculateBoardScore(newBoard);
-    if (boardScore === 0) {
-      console.log("\x1b[32mWIN!!!\x1b[0m");
-    } else {
-      console.log(newBoard.map((row) => row.join(" ")).join("\n"));
-      console.log("=================================================");
-      console.log("\x1b[31mNo more valid move!\x1b[0m");
-    }
-  }
   return newBoard;
 };
+
 const calculate = (board, previousState = []) => {
   if (previousState.length === MAX_FORECAST) {
     const boardScore = calculateBoardScore(board);
     return [boardScore, previousState];
   }
-  const validPosition = play(board);
+  const validPosition = findAllValidPosition(board);
   if (validPosition.length > 0) {
     let minimumBoardScore = Number.MAX_SAFE_INTEGER;
     let allState = [];
@@ -155,8 +152,7 @@ const calculate = (board, previousState = []) => {
     return [boardScore, previousState];
   }
 };
-// limit number of forecast to prevent long calculation
-const MAX_FORECAST = 5;
+
 const main = () => {
   const board = [
     [1, 0, 0, 0, 0, 0, 0, 0, 0],
@@ -171,6 +167,7 @@ const main = () => {
 
   let minimumBoardScore = Number.MAX_SAFE_INTEGER;
   let [boardScore, state] = calculate(newBoard);
+  // calculate until minimumBoardScore is not change
   while (boardScore !== minimumBoardScore) {
     if (minimumBoardScore > boardScore) {
       minimumBoardScore = boardScore;
@@ -178,7 +175,13 @@ const main = () => {
     newBoard = actionBoard(newBoard, state, false);
     [boardScore, state] = calculate(newBoard);
   }
-  actionBoard(newBoard, state, true);
+  if (boardScore === 0) {
+    console.log("\x1b[32mWIN!!!\x1b[0m");
+  } else {
+    console.log(newBoard.map((row) => row.join(" ")).join("\n"));
+    console.log("=================================================");
+    console.log("\x1b[31mNo more valid move!\x1b[0m");
+  }
 };
 
 main();
